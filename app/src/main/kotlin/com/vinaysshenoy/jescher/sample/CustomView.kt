@@ -29,7 +29,9 @@ class CustomView @JvmOverloads constructor(
 
 	private val jescher = Jescher(
 			this,
-			findCurrentMovable = this::findMovableAtPoint
+			findCurrentMovable = this::findMovableAtPoint,
+			onMoveCancel = { (it as Shape).selected(false) },
+			onMoveFinished = { (it as Shape).selected(false) }
 	)
 	private val drawRect = Rect()
 	private val dimensionFactorRange = MAX_DIMENSION_FACTOR - MIN_DIMENSION_FACTOR
@@ -53,7 +55,9 @@ class CustomView @JvmOverloads constructor(
 		}
 	}
 
-	private fun findMovableAtPoint(point: PointF) = shapes.find { it.contains(point.x, point.y) }
+	private fun findMovableAtPoint(point: PointF) =
+		shapes.find { it.contains(point.x, point.y) }
+				?.apply { selected(true) }
 
 	override fun onDraw(canvas: Canvas) {
 		super.onDraw(canvas)

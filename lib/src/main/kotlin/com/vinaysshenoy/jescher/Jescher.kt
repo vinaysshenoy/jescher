@@ -12,6 +12,8 @@ class Jescher @JvmOverloads constructor(
 	private val view: View,
 	private val findCurrentMovable: (PointF) -> Movable? = { _ -> null },
 	private val findCurrentScalable: (PointF) -> Scalable? = { _ -> null },
+	private val onMoveCancel: (Movable) -> Unit = {},
+	private val onMoveFinished: (Movable) -> Unit = {},
 		// TODO: Register actions for onScale,onMove,on
 	private val forwardTouchEvents: View.OnTouchListener = OnTouchListener { _, _ -> false }
 ) {
@@ -102,14 +104,14 @@ class Jescher @JvmOverloads constructor(
 
 	private fun onSinglePointerCancel() {
 		currentMovable?.let {
-			// TODO: Call appropriate callback function
+			onMoveCancel(it)
 			currentMovable = null
 		}
 	}
 
 	private fun onSinglePointerUp() {
 		currentMovable?.let {
-			// TODO: Call appropriate callback function
+			onMoveFinished(it)
 			currentMovable = null
 		}
 	}

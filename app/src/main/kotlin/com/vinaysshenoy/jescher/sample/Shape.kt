@@ -1,6 +1,7 @@
 package com.vinaysshenoy.jescher.sample
 
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.support.annotation.ColorInt
@@ -10,6 +11,8 @@ import com.vinaysshenoy.jescher.Scalable
 interface Shape : Movable, Scalable {
 
 	fun draw(canvas: Canvas)
+
+	fun selected(selected: Boolean)
 
 	fun contains(
 		pX: Float,
@@ -27,9 +30,12 @@ class Rectangle(
 
 	private val bounds: RectF
 	private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+	private val selectedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+	private var selected: Boolean = false
 
 	init {
 		paint.color = color
+		selectedPaint.color = Color.argb(102, 0, 0, 0)
 		paint.style = Paint.Style.FILL
 
 		bounds = RectF()
@@ -41,6 +47,13 @@ class Rectangle(
 
 	override fun draw(canvas: Canvas) {
 		canvas.drawRect(bounds, paint)
+		if (selected) {
+			canvas.drawRect(bounds, selectedPaint)
+		}
+	}
+
+	override fun selected(selected: Boolean) {
+		this.selected = selected
 	}
 
 	override fun moveBy(

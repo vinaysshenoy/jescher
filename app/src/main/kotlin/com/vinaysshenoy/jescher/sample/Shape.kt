@@ -19,16 +19,24 @@ interface Shape : Movable, Scalable {
 
 class Rectangle(
 	@ColorInt val color: Int,
-	val width: Float,
-	val height: Float
+	centerX: Float,
+	centerY: Float,
+	width: Float,
+	height: Float
 ) : Shape {
 
-	private val bounds = RectF(0F, 0F, width, height)
+	private val bounds: RectF
 	private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
 	init {
 		paint.color = color
 		paint.style = Paint.Style.FILL
+
+		bounds = RectF()
+		bounds.left = centerX - width / 2
+		bounds.right = centerX + width / 2
+		bounds.top = centerY - height / 2
+		bounds.bottom = centerY + height / 2
 	}
 
 	override fun draw(canvas: Canvas) {

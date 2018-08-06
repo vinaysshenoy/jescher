@@ -17,6 +17,16 @@
       android:layout_alignParentStart="true"
       />
 
+  <Button
+      android:id="@+id/btn_reset"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="Reset"
+      android:layout_alignParentTop="true"
+      android:layout_toEndOf="@id/btn_addRect"
+      android:layout_marginStart="16dp"
+      />
+
   <com.vinaysshenoy.jescher.sample.CustomView
       android:id="@+id/cv_shapes"
       android:layout_width="match_parent"

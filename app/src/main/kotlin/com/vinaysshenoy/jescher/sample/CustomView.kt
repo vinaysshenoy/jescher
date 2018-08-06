@@ -65,6 +65,10 @@ class CustomView @JvmOverloads constructor(
 		shapes.forEach { it.draw(canvas) }
 	}
 
+	fun reset() {
+		jescher.reset()
+	}
+
 	fun addRect() {
 		getDrawingRect(drawRect)
 		val centerX = drawRect.centerX()

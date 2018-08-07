@@ -3,6 +3,7 @@ package com.vinaysshenoy.jescher
 import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.PointF
+import android.graphics.Rect
 import android.graphics.RectF
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
@@ -76,8 +77,20 @@ class Jescher @JvmOverloads constructor(
 
 	private var currentMovable: Movable? = null
 
+	/**
+	 * [MotionEvent.ACTION_CANCEL] is no longer triggered if the user gesture exits the view bounds.
+	 *
+	 * See this [SO post](https://stackoverflow.com/questions/19417608/motionevent-action-cancel-is-not-triggered-during-ontouch)
+	 *
+	 * This is used to workaround that by manually checking the user has left the view bounds
+	 * */
+	private var isCurrentActionCancelled = false
+
 	private val isScaleBounded
 		get() = minScale != 0F
+
+	private val isCurrentTouchPointInsideViewBounds
+		get() = sourceRect.contains(curTouchPoint.x, curTouchPoint.y)
 
 	/**
 	 * Matrix that is provided to external callers
@@ -93,15 +106,11 @@ class Jescher @JvmOverloads constructor(
 
 	init {
 		view.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
-			sourceRect.set(
-					left.toFloat(),
-					top.toFloat(),
-					right.toFloat(),
-					bottom.toFloat()
-			)
+			val rect = Rect()
+			view.getDrawingRect(rect)
+			sourceRect.set(rect)
 		}
 		view.setOnTouchListener { _, event ->
-
 			scaleGestureDetector.onTouchEvent(event)
 			event.takeIf { it.pointerCount == 1 }
 					?.let { handleSingleFingerTouch(it) }
@@ -139,6 +148,12 @@ class Jescher @JvmOverloads constructor(
 	}
 
 	private fun onSinglePointerDown() {
+		if (isCurrentTouchPointInsideViewBounds) {
+			isCurrentActionCancelled = false
+		} else {
+			return
+		}
+
 		mapTransformationsOnSource()
 		mapPointFromTransformedToSource(curTouchPoint.x, curTouchPoint.y, sourcePoint)
 		currentMovable = findCurrentMovable(sourcePoint)
@@ -146,6 +161,7 @@ class Jescher @JvmOverloads constructor(
 	}
 
 	private fun onSinglePointerCancel() {
+		isCurrentActionCancelled = true
 		currentMovable?.let {
 			onMoveCancel(it)
 			currentMovable = null
@@ -153,6 +169,7 @@ class Jescher @JvmOverloads constructor(
 	}
 
 	private fun onSinglePointerUp() {
+		if (isCurrentActionCancelled) return
 		currentMovable?.let {
 			onMoveFinished(it)
 			currentMovable = null
@@ -160,8 +177,18 @@ class Jescher @JvmOverloads constructor(
 	}
 
 	private fun onSinglePointerMove() {
-		val deltaX = curTouchPoint.x - prevTouchPoint.x
-		val deltaY = curTouchPoint.y - prevTouchPoint.y
+		// Workaround for the face that the framework no longer triggers ACTION_CANCEL whenever the pointer leaves the view
+		if (isCurrentActionCancelled) {
+			return
+		} else {
+			if (isCurrentTouchPointInsideViewBounds.not()) {
+				onSinglePointerCancel()
+				return
+			}
+		}
+
+		val deltaX = (curTouchPoint.x - prevTouchPoint.x) / scaleFactor
+		val deltaY = (curTouchPoint.y - prevTouchPoint.y) / scaleFactor
 
 		currentMovable?.moveBy(deltaX, deltaY)
 		if (currentMovable == null) {
@@ -244,6 +271,7 @@ class Jescher @JvmOverloads constructor(
 
 	fun reset() {
 		transformMatrix.reset()
+		scaleFactor = 1F
 		view.invalidate()
 	}
 

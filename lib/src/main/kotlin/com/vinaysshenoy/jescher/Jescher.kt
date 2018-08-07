@@ -10,6 +10,7 @@ import android.view.ScaleGestureDetector
 import android.view.ScaleGestureDetector.OnScaleGestureListener
 import android.view.View
 import android.view.View.OnTouchListener
+import timber.log.Timber
 import kotlin.math.absoluteValue
 
 private const val LOG_TAG = "Jescher"
@@ -86,6 +87,16 @@ class Jescher @JvmOverloads constructor(
 	 * */
 	private var isCurrentActionCancelled = false
 
+	/**
+	 * The android event framework gives action move and up events immediately after finishing
+	 * a scale (2-finger) gesture. This causes a "jump" in panning immediately at the end of a scale
+	 * gesture, which is bad.
+	 *
+	 * This flag is turned on for a short duration immediately after the scale ends, and for as
+	 * long as it's on, the motion events will get swallowed
+	 **/
+	private var scaleGestureJustFinished = false
+
 	private val isScaleBounded
 		get() = minScale != 0F
 
@@ -111,16 +122,19 @@ class Jescher @JvmOverloads constructor(
 			sourceRect.set(rect)
 		}
 		view.setOnTouchListener { _, event ->
-			scaleGestureDetector.onTouchEvent(event)
-			event.takeIf { it.pointerCount == 1 }
-					?.let { handleSingleFingerTouch(it) }
-			event.takeIf { it.pointerCount != 1 }
-					?.let { _ ->
-						currentMovable?.let { onMoveCancel(it) }
-						// Cancel moving if something get selected in multi touch gesture
-						currentMovable = null
-					}
-			forwardTouchEvents.onTouch(view, event)
+
+			if (!scaleGestureJustFinished) {
+				scaleGestureDetector.onTouchEvent(event)
+				event.takeIf { it.pointerCount == 1 }
+						?.let { handleSingleFingerTouch(it) }
+				event.takeIf { it.pointerCount != 1 }
+						?.let { _ ->
+							currentMovable?.let { onMoveCancel(it) }
+							// Cancel moving if something get selected in multi touch gesture
+							currentMovable = null
+						}
+				forwardTouchEvents.onTouch(view, event)
+			}
 			return@setOnTouchListener true
 		}
 
@@ -169,6 +183,8 @@ class Jescher @JvmOverloads constructor(
 	}
 
 	private fun onSinglePointerUp() {
+		Timber.tag(LOG_TAG)
+				.d("Up")
 		if (isCurrentActionCancelled) return
 		currentMovable?.let {
 			onMoveFinished(it)
@@ -177,7 +193,7 @@ class Jescher @JvmOverloads constructor(
 	}
 
 	private fun onSinglePointerMove() {
-		// Workaround for the face that the framework no longer triggers ACTION_CANCEL whenever the pointer leaves the view
+		// Workaround for the fact that the framework no longer triggers ACTION_CANCEL whenever the pointer leaves the view
 		if (isCurrentActionCancelled) {
 			return
 		} else {
@@ -260,7 +276,8 @@ class Jescher @JvmOverloads constructor(
 	}
 
 	override fun onScaleEnd(detector: ScaleGestureDetector) {
-		// We don't do anything here (yet!)
+		scaleGestureJustFinished = true
+		view.postDelayed({ scaleGestureJustFinished = false }, 100L)
 	}
 
 	override fun onScale(detector: ScaleGestureDetector): Boolean {

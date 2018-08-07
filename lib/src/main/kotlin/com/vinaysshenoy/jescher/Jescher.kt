@@ -9,7 +9,6 @@ import android.view.ScaleGestureDetector
 import android.view.ScaleGestureDetector.OnScaleGestureListener
 import android.view.View
 import android.view.View.OnTouchListener
-import timber.log.Timber
 import kotlin.math.absoluteValue
 
 private const val LOG_TAG = "Jescher"
@@ -107,7 +106,8 @@ class Jescher @JvmOverloads constructor(
 			event.takeIf { it.pointerCount == 1 }
 					?.let { handleSingleFingerTouch(it) }
 			event.takeIf { it.pointerCount != 1 }
-					?.let {
+					?.let { _ ->
+						currentMovable?.let { onMoveCancel(it) }
 						// Cancel moving if something get selected in multi touch gesture
 						currentMovable = null
 					}
@@ -184,9 +184,6 @@ class Jescher @JvmOverloads constructor(
 	}
 
 	private fun clampedScale(scale: Float) {
-		Timber.tag(LOG_TAG)
-				.d("Scale: $scale")
-
 		if (scale == 1f) return
 
 		// This works because we scale both X and Y uniformly
@@ -201,8 +198,6 @@ class Jescher @JvmOverloads constructor(
 		} else {
 			transformMatrix.getValues(tempMatrixValues)
 			val prevScale = tempMatrixValues[matrixScaleX]
-			Timber.tag(LOG_TAG)
-					.d("Prev Scale: $prevScale")
 
 			tempMatrix.apply {
 				set(transformMatrix)
@@ -211,8 +206,6 @@ class Jescher @JvmOverloads constructor(
 			}
 
 			val finalScale = tempMatrixValues[matrixScaleX]
-			Timber.tag(LOG_TAG)
-					.d("Final Scale: $finalScale")
 			val actualScaleToSet = when {
 				finalScale > maxScale -> 1f + maxScale - prevScale
 				finalScale < minScale -> 1f + prevScale - minScale
@@ -221,8 +214,6 @@ class Jescher @JvmOverloads constructor(
 
 			if ((finalScale - maxScale).absoluteValue <= 0.1f || (finalScale - minScale).absoluteValue <= 0.1f) return
 
-			Timber.tag(LOG_TAG)
-					.d("Actual Scale To Set: $actualScaleToSet")
 			transformMatrix.apply {
 				preScale(actualScaleToSet, actualScaleToSet, scaleFocus.x, scaleFocus.y)
 				getValues(tempMatrixValues)
@@ -238,9 +229,6 @@ class Jescher @JvmOverloads constructor(
 		mapTransformationsOnSource()
 		mapPointFromTransformedToSource(scaleFocusX, scaleFocusY, scaleFocus)
 
-//		scaleFocus.x = scaleFocusX
-//		scaleFocus.y = scaleFocusY
-
 		return true
 	}
 
@@ -250,8 +238,6 @@ class Jescher @JvmOverloads constructor(
 
 	override fun onScale(detector: ScaleGestureDetector): Boolean {
 		clampedScale(detector.scaleFactor)
-		Timber.tag(LOG_TAG)
-				.d("Current Scale: $scaleFactor")
 		view.invalidate()
 		return true
 	}

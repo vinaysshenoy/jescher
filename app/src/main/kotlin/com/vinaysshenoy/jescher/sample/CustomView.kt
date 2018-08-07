@@ -14,7 +14,7 @@ private const val MIN_DIMENSION_FACTOR = 0.15F
 private const val MAX_DIMENSION_FACTOR = 0.4F
 
 private val colorSet = listOf(
-		Color.BLACK,
+		Color.YELLOW,
 		Color.BLUE,
 		Color.DKGRAY,
 		Color.GREEN,
